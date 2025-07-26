@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -33,6 +34,9 @@ android {
     kotlinOptions {
         jvmTarget = "11"
     }
+    buildFeatures{
+        viewBinding = true
+    }
 }
 
 dependencies {
@@ -45,4 +49,30 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+
+    // Retrofit para API calls
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+
+    // Coroutines
+    implementation(libs.kotlinx.coroutines.android)
+
+    // Location Services
+    implementation(libs.play.services.location)
+
+    // Lifecycle
+    implementation(libs.androidx.lifecycle.runtime.ktx)
+
+    // RecyclerView
+    implementation(libs.androidx.recyclerview)
+
+    // ---- Room (Base de datos) ----
+    implementation("androidx.room:room-runtime:2.7.2")
+    // Para usar 'suspend' en los DAOs (Coroutines)
+    implementation("androidx.room:room-ktx:2.7.2")
+    // Procesador de anotaciones de Room (usando ksp)
+    ksp("androidx.room:room-compiler:2.7.2")
+    // Location Services
+    implementation("com.google.android.gms:play-services-location:21.3.0")
+
 }
