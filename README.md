@@ -1,3 +1,10 @@
+# Para ejecutar
+
+Compilar e instalar app en movil o emulador.
+
+----------------
+ 
+ 
  Conceptos: API REST, View Binding, Corrutinas, JSON parsing
  
  Objetivo: Desarrollar una aplicación que consulte el clima actual y pronóstico usando una API REST, con 
