@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="64dp"
+    android:height="64dp"
+    android:viewportWidth="64"
+    android:viewportHeight="64">
+
+    <!-- Sol -->
+    <group
+        android:name="sun_group"
+        android:pivotX="32"
+        android:pivotY="32"
+        android:rotation="0">
+        <!-- Círculo central del sol -->
+        <path
+            android:fillColor="#FFC107"
+            android:pathData="M32,16
+                              a16,16 0 1,0 0,32
+                              a16,16 0 1,0 0,-32" />
+        <!-- Rayos del sol -->
+        <path
+            android:strokeColor="#FFC107"
+            android:strokeWidth="4"
+            android:strokeLineCap="round"
+            android:fillColor="@android:color/transparent"
+            android:pathData="
+                M32,0 L32,12
+                M32,52 L32,64
+                M0,32 L12,32
+                M52,32 L64,32
+                M10,10 L18,18
+                M46,46 L54,54
+                M10,54 L18,46
+                M46,18 L54,10" />
+    </group>
+
+    <!-- Nube -->
+    <path
+        android:fillColor="#90A4AE"
+        android:pathData="
+            M50,40
+            h-2
+            a10,10 0 0,0 -19,-6
+            a12,12 0 0,0 -22,2
+            a8,8 0 0,0 2,16
+            h35
+            a8,8 0 0,0 2,-16
+            z" />
+
+</vector>

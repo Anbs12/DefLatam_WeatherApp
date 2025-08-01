@@ -15,16 +15,19 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
+import com.example.deflatam_weatherapp.cache.RoomCacheManager
 import com.example.deflatam_weatherapp.databinding.ActivityMainBinding
+import com.example.deflatam_weatherapp.entities.ClimaEntity
+import com.example.deflatam_weatherapp.model.ClimaResponse
 import com.example.deflatam_weatherapp.repository.ClimaRepository
+import com.example.deflatam_weatherapp.ui.MainActivityViewModel
 import com.example.deflatam_weatherapp.utils.LocationHelper
-import com.example.deflatam_weatherapp.viewmodel.MainActivityViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -35,40 +38,36 @@ class MainActivity : AppCompatActivity() {
     private var ciudadesFavoritas = mutableListOf<String>()
 
     private val viewModel: MainActivityViewModel by viewModels()
+    private lateinit var roomCacheManager: RoomCacheManager
 
+    /** Inicializa vistas y carga datos al crear la actividad */
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        roomCacheManager = RoomCacheManager(this)
         binding.progressBar.visibility = View.VISIBLE
         setupListener()
-
+        observarCache()
 
         if (isInternetAvailable(this)) {
             binding.tvNoInternet.visibility = View.GONE
-
-            //Geolocalizacion automatica
             solicitarPermisosUbicacion()
-            lifecycleScope.launch {
-                obtenerCiudadesFavoritas()
-            }
+            lifecycleScope.launch { obtenerCiudadesFavoritas() }
         } else {
             binding.tvUltimaCiudadConsultada.visibility = View.VISIBLE
             binding.tvNoInternet.visibility = View.VISIBLE
-            binding.tvCiudad.text = viewModel.getLastCity()
-            binding.tvTemperatura.text = viewModel.getLastTemp()
-            lifecycleScope.launch {
-                obtenerCiudadesFavoritas()
-            }
+            /*binding.tvCiudad.text = viewModel.getLastCity()
+            binding.tvTemperatura.text = viewModel.getLastTemp()*/
+            viewModel.cargarClimaCache(viewModel.getLastCity() ?: "")
+            lifecycleScope.launch { obtenerCiudadesFavoritas() }
+            ultimaCiudadConsultada = viewModel.getLastCity() ?: ""
+
         }
-
     }
 
-    override fun onPause() {
-        super.onPause()
-        //viewModel.saveLastCity(ultimaCiudadConsultada, binding.tvTemperatura.text.toString())
-    }
-
+    /** Configura listeners de botones e interacción */
     private fun setupListener() {
 
         binding.btnBuscar.setOnClickListener {
@@ -76,23 +75,26 @@ class MainActivity : AppCompatActivity() {
             val ciudad = binding.etCiudad.text.toString()
             if (ciudad.isNotBlank()) {
                 obtenerClima(ciudad)
-            } else {
-                Toast.makeText(this, "Ingrese Ciudad", Toast.LENGTH_SHORT).show()
-            }
+                binding.etCiudad.setText("")
+            } else Toast.makeText(this, "Ingrese Ciudad", Toast.LENGTH_SHORT).show()
+
+
         }
 
-        binding.btnUbicacion.setOnClickListener {
-            solicitarPermisosUbicacion()
-        }
+        binding.btnUbicacion.setOnClickListener { solicitarPermisosUbicacion() }
 
         binding.layoutClima.setOnClickListener {
             if (ultimaCiudadConsultada.isNotEmpty()) {
                 abrirPronostico(ultimaCiudadConsultada)
             } else {
-                abrirPronostico(ultimaCiudadConsultada)
-                Toast.makeText(this, "No hay pronostico disponible o no tiene internet", Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    "No hay pronostico disponible o no tiene internet",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
         }
+
         binding.ivFav.setOnClickListener {
             if (viewModel.isCityFavorite(ultimaCiudadConsultada)) {
                 viewModel.removeCityFromFavorites(ultimaCiudadConsultada)
@@ -104,17 +106,43 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    /** Observa datos de clima almacenados en cache */
+    private fun observarCache() {
+        viewModel.climaCache.observe(this, Observer { entity ->
+            entity?.let {
+                binding.tvCiudad.text = it.ciudad
+                binding.tvTemperatura.text = "${it.temperatura.toInt()}°C"
+                binding.tvDescripcion.text = it.descripcion
+                ultimaCiudadConsultada = it.ciudad
+                binding.progressBar.visibility = View.GONE
+            }
+        })
+    }
+
+    /** Solicita y muestra datos de clima desde API y cache */
     private fun obtenerClima(ciudad: String) {
         CoroutineScope(Dispatchers.Main).launch {
             try {
                 val climaResponse = climaRepository.obtenerClima(ciudad)
-                binding.tvCiudad.text = climaResponse.nombre
-                binding.tvDescripcion.text = climaResponse.weather[0].description
-                val temperatura = "${climaResponse.main.temp.toInt()}°C"
-                binding.tvTemperatura.text = temperatura
-                ultimaCiudadConsultada = climaResponse.nombre
-                binding.progressBar.visibility = View.GONE
-                viewModel.saveLastCity(ultimaCiudadConsultada, temperatura)
+                mostrarClima(climaResponse)
+                viewModel.saveLastCity(
+                    ultimaCiudadConsultada,
+                    binding.tvTemperatura.text.toString()
+                )
+                viewModel.guardarClimaCache(
+                    ClimaEntity(
+                        ciudad = climaResponse.nombre,
+                        temperatura = climaResponse.main.temp,
+                        descripcion = climaResponse.weather[0].description,
+                        iconoClima = climaResponse.weather[0].icon,
+                        condicionPrincipal = climaResponse.weather[0].main,
+                        presion = climaResponse.main.pressure,
+                        humedad = climaResponse.main.humidity,
+                        temMax = climaResponse.main.temp_max,
+                        temMin = climaResponse.main.temp_min,
+                        weather = climaResponse.weather
+                    )
+                )
             } catch (e: Exception) {
                 Toast.makeText(
                     this@MainActivity,
@@ -126,115 +154,114 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun abrirPronostico(ciudad: String) {
-        val intent = Intent(this, PronosticoActivity::class.java)
-        intent.putExtra("CIUDAD_NOMBRE", ciudad)
-        startActivity(intent)
+    /** Actualiza UI con los datos de clima recibidos */
+    private fun mostrarClima(climaResponse: ClimaResponse) {
+        binding.tvCiudad.text = climaResponse.nombre
+        binding.tvDescripcion.text = climaResponse.weather[0].description
+        binding.tvTemperatura.text = "${climaResponse.main.temp.toInt()}°C"
+        ultimaCiudadConsultada = climaResponse.nombre
+        binding.progressBar.visibility = View.GONE
     }
 
+    /** Abre actividad de pronóstico para la ciudad dada */
+    private fun abrirPronostico(ciudad: String) {
+        startActivity(Intent(this, PronosticoActivity::class.java).apply {
+            putExtra("CIUDAD_NOMBRE", ciudad)
+        })
+    }
+
+    /** Solicita permisos de ubicación al usuario */
     private fun solicitarPermisosUbicacion() {
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
             ActivityCompat.requestPermissions(
                 this,
                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION),
                 PERMISSIONS_REQUEST_LOCATION
             )
-        } else {
-            obtenerUbicacion()
-        }
+        } else obtenerUbicacion()
     }
 
+    /** Maneja el resultado de solicitud de permisos */
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<out String>,
         grantResults: IntArray
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == PERMISSIONS_REQUEST_LOCATION && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            obtenerUbicacion()
-        } else {
-            Toast.makeText(
-                this,
-                "Permiso de ubicacion requerido para obtener clima actual",
-                Toast.LENGTH_SHORT
-            ).show()
-        }
+        if (requestCode == PERMISSIONS_REQUEST_LOCATION && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) obtenerUbicacion()
+        else Toast.makeText(
+            this,
+            "Permiso de ubicacion requerido para obtener clima actual",
+            Toast.LENGTH_SHORT
+        ).show()
     }
 
+    /** Obtiene ubicacion del dispositivo y delega obtención de clima */
     private fun obtenerUbicacion() {
-
         LocationHelper.obtenerUbicacion(this) { location ->
             if (location != null) {
                 val geocoder = Geocoder(this, Locale.getDefault())
                 try {
-                    val direcciones =
-                        geocoder.getFromLocation(location.latitude, location.longitude, 1)
-                    val ciudad = direcciones?.firstOrNull()?.locality ?: "Ciudad no encontrada"
+                    val ciudad =
+                        geocoder.getFromLocation(location.latitude, location.longitude, 1)!!
+                            .firstOrNull()?.locality ?: "Ciudad no encontrada"
                     if (ciudad != "Ciudad no encontrada") {
                         obtenerClima(ciudad)
                         binding.etCiudad.setText(ciudad)
-                        binding.progressBar.visibility = View.GONE
-                    } else {
-                        binding.tvCiudad.text = "❌ Ciudad no encontrada"
-                        binding.tvTemperatura.text = " --°C"
-                        binding.tvDescripcion.text = "Busca una ciudad para ver el clima"
-                        Toast.makeText(
-                            this,
-                            "Error al obtener nombre de la ciudad",
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        binding.progressBar.visibility = View.GONE
-                    }
+                    } else mostrarErrorUbicacion("Ciudad no encontrada")
                 } catch (e: Exception) {
-                    binding.progressBar.visibility = View.GONE
-                    binding.tvCiudad.text = "❌ Error de geolocalizacion"
-                    binding.tvTemperatura.text = " --°C"
-                    binding.tvDescripcion.text = "Error al obtener la ciudad donde te encuentras"
-                    Toast.makeText(this, "Error al obtener nombre de la ciudad", Toast.LENGTH_SHORT)
-                        .show()
+                    mostrarErrorUbicacion("Error de geolocalizacion")
                 }
-            } else {
-                binding.progressBar.visibility = View.GONE
-                binding.tvCiudad.text = " Sin Ubicacion"
-                binding.tvTemperatura.text = " --°C"
-                binding.tvDescripcion.text = "No se puede obtener ubicación"
-                Toast.makeText(this, "No se pudo obtener ubicación", Toast.LENGTH_SHORT).show()
-            }
+            } else mostrarErrorUbicacion("Sin Ubicacion")
         }
     }
 
+    /** Muestra mensaje de error relacionado con ubicación */
+    private fun mostrarErrorUbicacion(mensaje: String) {
+        try {
+            binding.progressBar.visibility = View.GONE
+            binding.tvCiudad.text = "❌ $mensaje"
+            binding.tvTemperatura.text = " --°C"
+            binding.tvDescripcion.text = "No se puede obtener ubicación"
+            Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Toast.makeText(this, mensaje, Toast.LENGTH_SHORT).show()
+        }
+
+    }
+
+    /** Obtiene lista de ciudades favoritas desde flujo */
     private suspend fun obtenerCiudadesFavoritas() {
         viewModel.favoriteCities.collect { favoriteCities ->
             ciudadesFavoritas.clear()
             ciudadesFavoritas.addAll(favoriteCities)
-            binding.tvCiudadesFavorita.text = ciudadesFavoritas.joinToString(", ")
+            var ciudadFavtxt: String
+            if (ciudadesFavoritas.isNotEmpty()) {
+                ciudadFavtxt = "Ciudades favoritas: ${ciudadesFavoritas.joinToString(", ")}"
+            } else {
+                ciudadFavtxt = "No has añadido ciudades favoritas aun..."
+            }
+            binding.tvCiudadesFavorita.text = ciudadFavtxt
         }
     }
 
+    /** Verifica si hay conexión a internet */
     private fun isInternetAvailable(context: Context): Boolean {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return false
-            val activeNetwork =
-                connectivityManager.getNetworkCapabilities(network) ?: return false
-            return when {
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                // para otras redes como Ethernet, VPN, etc.
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> true
-                else -> false
-            }
+        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }?.run {
+                hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || hasTransport(
+                    NetworkCapabilities.TRANSPORT_ETHERNET
+                ) || hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+            } == true
         } else {
-            // Métodos depreciados para API < 23 (Marshmallow)
-            @Suppress("DEPRECATION")
-            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
-            @Suppress("DEPRECATION")
-            return networkInfo.isConnected
+            @Suppress("DEPRECATION") cm.activeNetworkInfo?.isConnected == true
         }
     }
 }
+

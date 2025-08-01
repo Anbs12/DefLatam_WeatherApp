@@ -9,6 +9,7 @@ import android.os.Bundle
 /** Clase para obtener la ubicación del usuario */
 
 object LocationHelper {
+
     fun obtenerUbicacion(context: Context, callback: (Location?) -> Unit) {
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
 

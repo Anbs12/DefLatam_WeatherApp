@@ -1,3 +1,4 @@
+// ClimaDao.kt
 package com.example.deflatam_weatherapp.database
 
 import androidx.room.Dao
@@ -9,11 +10,10 @@ import com.example.deflatam_weatherapp.entities.ClimaEntity
 import com.example.deflatam_weatherapp.entities.PronosticoEntity
 import kotlinx.coroutines.flow.Flow
 
-
 @Dao
 interface ClimaDao {
 
-    //Clima Actual
+    // Clima Actual
     @Query("SELECT * FROM clima_actual WHERE ciudad = :ciudad")
     suspend fun obtenerClimaActual(ciudad: String): ClimaEntity?
 
@@ -29,7 +29,7 @@ interface ClimaDao {
     @Delete
     suspend fun eliminarClima(clima: ClimaEntity)
 
-    //Pronostico
+    // Pronóstico
     @Query("SELECT * FROM pronostico WHERE ciudad = :ciudad")
     suspend fun getPronosticoByCiudad(ciudad: String): List<PronosticoEntity>
 
@@ -39,12 +39,10 @@ interface ClimaDao {
     @Query("DELETE FROM pronostico WHERE ciudad = :ciudad")
     suspend fun eliminarPronostico(ciudad: String)
 
-    //Utilidades
-
+    // Utilidades
     @Query("SELECT COUNT(*) FROM clima_actual")
     suspend fun contarClimas(): Int
 
     @Query("SELECT COUNT(*) FROM pronostico")
     suspend fun contarPronosticos(): Int
-
 }

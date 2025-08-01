@@ -1,5 +1,6 @@
 package com.example.deflatam_weatherapp
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
@@ -12,8 +13,10 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.deflatam_weatherapp.adapter.PronosticoAdapter
-import com.example.deflatam_weatherapp.cache.CacheManager
+import com.example.deflatam_weatherapp.cache.RoomCacheManager
+import com.example.deflatam_weatherapp.entities.PronosticoEntity
 import com.example.deflatam_weatherapp.model.DiaPronostico
+import com.example.deflatam_weatherapp.model.PronosticoResponse
 import com.example.deflatam_weatherapp.repository.ClimaRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,14 +24,13 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-
 class PronosticoActivity : AppCompatActivity() {
 
     private lateinit var tvTituloPronostico: TextView
     private lateinit var rvPronostico: RecyclerView
     private lateinit var climaRepository: ClimaRepository
+    private lateinit var roomCacheManager: RoomCacheManager // NUEVA
     private var ciudadNombre: String = ""
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +46,7 @@ class PronosticoActivity : AppCompatActivity() {
         tvTituloPronostico = findViewById(R.id.tvTituloPronostico)
         rvPronostico = findViewById(R.id.rvPronostico)
         climaRepository = ClimaRepository(this)
+        roomCacheManager = RoomCacheManager(this) // NUEVA
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "Pronóstico 5 días"
@@ -58,6 +61,7 @@ class PronosticoActivity : AppCompatActivity() {
         tvTituloPronostico.text = "Pronóstico para los próximos 5 días en $ciudadNombre"
     }
 
+    @SuppressLint("SetTextI18n")
     private fun cargarPronostico() {
         if (ciudadNombre.isEmpty() || ciudadNombre == "Ciudad no encontrada") {
             Toast.makeText(this, "Ciudad no encontrada", Toast.LENGTH_SHORT).show()
@@ -67,85 +71,81 @@ class PronosticoActivity : AppCompatActivity() {
 
         CoroutineScope(Dispatchers.Main).launch {
             try {
-                // loading
                 tvTituloPronostico.text = "Cargando pronóstico para $ciudadNombre..."
                 Log.d("PronosticoActivity", "Obteniendo info de la API")
+                var texttvTituloPronosticoNoInternet = "Sin internet desde cache."
 
-                val pronosticoResponse = climaRepository.obtenerPronostico(ciudadNombre)
-                Log.d("PronosticoActivity", "datos recibidos: ${pronosticoResponse.list.size}")
+                val response: PronosticoResponse
+                var pronosticosFiltrados: List<DiaPronostico>
+                val listaCache = mutableListOf<PronosticoEntity>()
 
-                // Filtrar pronósticos por día
-                var pronosticosFiltrados = filtrarPronosticosPorDia(pronosticoResponse.list)
-                Log.d("PronosticoActivity", "datos filtrados: ${pronosticosFiltrados.size} por día")
+                if (isInternetAvailable(this@PronosticoActivity)){
+                    response = climaRepository.obtenerPronostico(ciudadNombre)
+                    pronosticosFiltrados = filtrarPronosticosPorDia(response.list)
+                    Log.d("PronosticoActivity", "datos filtrados: ${pronosticosFiltrados.size} por día")
 
-                if (pronosticosFiltrados.isEmpty()){
-                    Log.w("PronosticoActivity", "No se encontraron pronósticos para el día actual")
-                    tvTituloPronostico.text = "No se encontraron pronósticos para el día actual"
-                    return@launch
-                }
+                    if (pronosticosFiltrados.isEmpty()) {
+                        tvTituloPronostico.text = "No se encontraron pronósticos para el día actual"
+                        return@launch
+                    }
 
-                // Guardar pronósticos en cache
-                val cacheManager = CacheManager(this@PronosticoActivity)
-                if (isInternetAvailable(context = this@PronosticoActivity)){
-                    cacheManager.guardarListaPronosticos(pronosticosFiltrados)
+                    pronosticosFiltrados.forEach { dia ->
+                        val entity = PronosticoEntity(
+                            ciudad = ciudadNombre,
+                            fechaHora = dia.dt_txt,
+                            temperatura = dia.main.temp,
+                            iconoClima = dia.weather[0].icon,
+                            condicionPrincipal = dia.weather[0].main,
+                            presion = dia.main.pressure,
+                            humedad = dia.main.humidity,
+                            temMax = dia.main.temp_max,
+                            temMin = dia.main.temp_min,
+                            weather = dia.weather
+                        )
+                        roomCacheManager.guardarPronosticoCache(entity)
+                        listaCache.add(entity)
+                        tvTituloPronostico.text = "Pronóstico de ${listaCache.size} días para $ciudadNombre"
+                    }
                 }else{
-                    val pronosticosGuardados = cacheManager.obtenerListaPronosticos()
-                    pronosticosFiltrados = pronosticosGuardados
+                    listaCache.addAll(roomCacheManager.obtenerPronosticoCache(ciudadNombre))
+                    tvTituloPronostico.text = "Pronóstico de ${listaCache.size} días para $ciudadNombre $texttvTituloPronosticoNoInternet"
                 }
 
-                // Configurar adapter
-                val adapter = PronosticoAdapter(pronosticosFiltrados)
+                // Mostrar en RecyclerView
+                val adapter = PronosticoAdapter(listaCache)
                 rvPronostico.adapter = adapter
-                Log.d("PronosticoActivity", "Adapter configurado")
-
-                // Actualizar título
-                tvTituloPronostico.text = "Pronóstico de ${pronosticosFiltrados.size} días para $ciudadNombre"
 
                 Toast.makeText(this@PronosticoActivity, "Pronóstico cargado", Toast.LENGTH_SHORT).show()
 
             } catch (e: Exception) {
                 tvTituloPronostico.text = "Error al cargar pronóstico"
-                Toast.makeText(
-                    this@PronosticoActivity,
-                    "Error: ${e.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-                e.printStackTrace()
+                Toast.makeText(this@PronosticoActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Log.e("PronosticoActivity", "Error al cargar pronóstico ${e.message}", e)
             }
         }
     }
 
     private fun filtrarPronosticosPorDia(pronosticos: List<DiaPronostico>): List<DiaPronostico> {
         val pronosticosFiltrados = mutableMapOf<String, DiaPronostico>()
-        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         val timeFormat = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        for (pronostico in pronosticos) {
-            try {
-                val dateTime = pronostico.dt_txt.split(" ")
-                val fecha = dateTime[0]
-                val hora = dateTime[1]
-
-                if (!pronosticosFiltrados.containsKey(fecha)) {
-                    pronosticosFiltrados[fecha] = pronostico
-                } else {
-                    // Keep the forecast closest to noon (12:00)
+        pronosticos.forEach { pronostico ->
+            val parts = pronostico.dt_txt.split(" ")
+            val fecha = parts[0]
+            val hora = parts.getOrNull(1) ?: ""
+            if (!pronosticosFiltrados.containsKey(fecha)) {
+                pronosticosFiltrados[fecha] = pronostico
+            } else {
+                try {
                     val currentTime = timeFormat.parse(hora)
-                    val currentNoonDiff = Math.abs(currentTime.hours - 12)
-
-                    val existingForecast = pronosticosFiltrados[fecha]!!
-                    val existingTime = timeFormat.parse(existingForecast.dt_txt.split(" ")[1])
-                    val existingNoonDiff = Math.abs(existingTime.hours - 12)
-
-                    if (currentNoonDiff < existingNoonDiff) {
-                        pronosticosFiltrados[fecha] = pronostico
-                    }
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
+                    val diffCurrent = Math.abs(currentTime.hours - 12)
+                    val existing = pronosticosFiltrados[fecha]!!
+                    val existingTime = timeFormat.parse(existing.dt_txt.split(" ")[1])
+                    val diffExisting = Math.abs(existingTime.hours - 12)
+                    if (diffCurrent < diffExisting) pronosticosFiltrados[fecha] = pronostico
+                } catch (_: Exception) {}
             }
         }
-
         return pronosticosFiltrados.values.toList()
     }
 
@@ -155,27 +155,13 @@ class PronosticoActivity : AppCompatActivity() {
     }
 
     private fun isInternetAvailable(context: Context): Boolean {
-        val connectivityManager =
-            context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            val network = connectivityManager.activeNetwork ?: return false
-            val activeNetwork =
-                connectivityManager.getNetworkCapabilities(network) ?: return false
-            return when {
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
-                // para otras redes como Ethernet, VPN, etc.
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
-                activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_VPN) -> true
-                else -> false
-            }
+        val cm = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }?.run {
+                hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) || hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+            } == true
         } else {
-            // Métodos depreciados para API < 23 (Marshmallow)
-            @Suppress("DEPRECATION")
-            val networkInfo = connectivityManager.activeNetworkInfo ?: return false
-            @Suppress("DEPRECATION")
-            return networkInfo.isConnected
+            @Suppress("DEPRECATION") cm.activeNetworkInfo?.isConnected == true
         }
     }
 }
