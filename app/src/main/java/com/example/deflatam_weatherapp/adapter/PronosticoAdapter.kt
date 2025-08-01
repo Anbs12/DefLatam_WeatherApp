@@ -7,13 +7,13 @@ import android.view.ViewGroup
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.deflatam_weatherapp.R
-import com.example.deflatam_weatherapp.model.DiaPronostico
+import com.example.deflatam_weatherapp.entities.PronosticoEntity
 import java.text.SimpleDateFormat
 import java.util.Locale
 
 /** Adaptador para el RecyclerView de pronóstico 5 días */
 
-class PronosticoAdapter(private val pronosticos: List<DiaPronostico>) :
+class PronosticoAdapter(private val pronosticos: MutableList<PronosticoEntity>) :
     RecyclerView.Adapter<PronosticoAdapter.PronosticoViewHolder>() {
 
     init {
@@ -35,11 +35,11 @@ class PronosticoAdapter(private val pronosticos: List<DiaPronostico>) :
 
     override fun onBindViewHolder(holder: PronosticoViewHolder, position: Int) {
         val pronostico = pronosticos[position]
-        Log.d("PronosticoAdapter", "Binding posición $position: ${pronostico.dt_txt}")
+        Log.d("PronosticoAdapter", "Binding posición $position: ${pronostico.id}")
 
         try {
             // Fecha
-            val fechaFormateada = formatearFecha(pronostico.dt_txt)
+            val fechaFormateada = formatearFecha(pronostico.fechaHora)
             holder.tvFecha.text = fechaFormateada
 
             // Descripción clima
@@ -53,7 +53,7 @@ class PronosticoAdapter(private val pronosticos: List<DiaPronostico>) :
             holder.tvDescripcion.text = descripcion
 
             // Temperatura
-            holder.tvTemperatura.text = "${pronostico.main.temp.toInt()}°C"
+            holder.tvTemperatura.text = "${pronostico.temperatura.toInt()}°C"
 
             // Emoji del clima
             val main = if (pronostico.weather.isNotEmpty()) pronostico.weather[0].main else "Clear"

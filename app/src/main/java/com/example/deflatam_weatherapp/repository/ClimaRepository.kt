@@ -46,4 +46,5 @@ class ClimaRepository(private val context: Context) {
             throw Exception("Error en la API: ${response.code()} - ${response.message()}")
         }
     }
+
 }

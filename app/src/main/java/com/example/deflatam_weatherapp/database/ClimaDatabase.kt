@@ -9,7 +9,6 @@ import com.example.deflatam_weatherapp.entities.ClimaEntity
 import com.example.deflatam_weatherapp.entities.Converters
 import com.example.deflatam_weatherapp.entities.PronosticoEntity
 
-
 @Database(
     entities = [ClimaEntity::class, PronosticoEntity::class],
     version = 1,
@@ -19,7 +18,7 @@ import com.example.deflatam_weatherapp.entities.PronosticoEntity
 abstract class ClimaDatabase : RoomDatabase() {
     abstract fun climaDao(): ClimaDao
 
-    companion object{
+    companion object {
         @Volatile
         private var INSTANCE: ClimaDatabase? = null
 

@@ -1,62 +1,76 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+<com.google.android.material.card.MaterialCardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/cardPronostico"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="@android:color/white"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="8dp"
-    android:layout_margin="16dp">
+    android:layout_margin="16dp"
+    app:cardElevation="4dp"
+    app:cardCornerRadius="12dp"
+    app:cardUseCompatPadding="true"
+    app:strokeColor="@color/gray_light"
+    app:strokeWidth="1dp"
+    android:padding="12dp"
+    android:backgroundTint="@android:color/white">
 
-    <LinearLayout
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
-        android:layout_margin="4dp">
+        android:layout_height="wrap_content">
 
+        <!-- Icono del clima -->
         <TextView
             android:id="@+id/ivIconoClima"
-            android:layout_width="50dp"
-            android:layout_height="50dp"
-            android:layout_marginEnd="16dp"
-            android:contentDescription="Icono Clima"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:gravity="center"
             android:text="😀"
-            android:gravity="center_vertical|center_horizontal"/>
+            android:textSize="24sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
-        <LinearLayout
+        <!-- Fecha -->
+        <TextView
+            android:id="@+id/tvFecha"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:text="Fecha"
+            android:textColor="@color/black"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toEndOf="@id/ivIconoClima"
+            app:layout_constraintTop_toTopOf="@id/ivIconoClima"
+            app:layout_constraintEnd_toStartOf="@id/tvTemperaturaPronostico"
+            app:layout_constraintHorizontal_chainStyle="spread_inside"
+            android:layout_marginStart="16dp" />
 
-            <TextView
-                android:id="@+id/tvFecha"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Fecha"
-                android:textColor="#2C3E50"
-                android:textSize="16sp"
-                android:textStyle="bold" />
+        <!-- Descripción del pronóstico -->
+        <TextView
+            android:id="@+id/tvDescripcionPronostico"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:text="Descripción"
+            android:textColor="@color/gray_dark"
+            android:textSize="14sp"
+            app:layout_constraintStart_toStartOf="@id/tvFecha"
+            app:layout_constraintTop_toBottomOf="@id/tvFecha"
+            app:layout_constraintEnd_toEndOf="@id/tvFecha"
+            android:layout_marginTop="4dp" />
 
-            <TextView
-                android:id="@+id/tvDescripcionPronostico"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Descripción"
-                android:textColor="#7F8C8D"
-                android:textSize="14sp" />
-
-        </LinearLayout>
-
+        <!-- Temperatura -->
         <TextView
             android:id="@+id/tvTemperaturaPronostico"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="25°C"
-            android:textColor="#E74C3C"
+            android:textColor="@color/red_700"
             android:textSize="18sp"
-            android:textStyle="bold" />
-    </LinearLayout>
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@id/tvFecha"
+            app:layout_constraintBottom_toBottomOf="@id/tvDescripcionPronostico" />
 
-</androidx.cardview.widget.CardView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

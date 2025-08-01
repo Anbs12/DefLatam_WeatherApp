@@ -1,3 +1,4 @@
+// ClimaEntity.kt
 package com.example.deflatam_weatherapp.entities
 
 import androidx.room.Entity
@@ -7,13 +8,13 @@ import androidx.room.TypeConverters
 import com.example.deflatam_weatherapp.model.Weather
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import java.util.UUID
 
-
-@Entity(tableName= "clima_actual")
+@Entity(tableName = "clima_actual")
 @TypeConverters(Converters::class)
 data class ClimaEntity(
     @PrimaryKey
-    val ciudad : String,
+    val ciudad: String,
     val temperatura: Double,
     val descripcion: String,
     val iconoClima: String,
@@ -26,12 +27,12 @@ data class ClimaEntity(
     val weather: List<Weather>
 )
 
-@Entity(tableName= "pronostico")
+@Entity(tableName = "pronostico")
 @TypeConverters(Converters::class)
 data class PronosticoEntity(
-    @PrimaryKey
-    val id : String,
-    val ciudad :String,
+    @PrimaryKey(autoGenerate = true)
+    val id: Int = UUID.randomUUID().hashCode(),
+    val ciudad: String,
     val fechaHora: String,
     val temperatura: Double,
     val iconoClima: String,
@@ -44,12 +45,12 @@ data class PronosticoEntity(
     val weather: List<Weather>
 )
 
-// Room
 class Converters {
     @TypeConverter
     fun fromWeatherList(value: List<Weather>): String {
         return Gson().toJson(value)
     }
+
     @TypeConverter
     fun toWeatherList(value: String): List<Weather> {
         val listType = object : TypeToken<List<Weather>>() {}.type

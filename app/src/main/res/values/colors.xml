@@ -1,5 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
+
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="primaryText">#2C3E50</color>
+    <color name="secondaryText">#7F8C8D</color>
+    <color name="gray_light">#BDC3C7</color>
+    <color name="gray_dark">#90A4AE</color>
+
+    <!-- Brand -->
+    <color name="primary">#3498DB</color>
+    <color name="red_700">#E74C3C</color>
+
+    <!-- Semantic -->
+    <color name="error">#E74C3C</color>
+
+
 </resources>
