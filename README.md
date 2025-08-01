@@ -19,8 +19,8 @@ interfaz moderna y manejo asíncrono.
  - ✅Modo offline con datos cached
 
 Retos Adicionales
- - Implementar caché con Room Database
- - Widgets de escritorio
+ - ✅Implementar caché con Room Database
+ - ✅Widgets de escritorio
  - Notificaciones de alertas meteorológicas
  - Gráficos de temperatura
  - Múltiples ubicaciones
