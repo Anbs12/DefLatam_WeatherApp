@@ -13,7 +13,8 @@ import com.example.deflatam_weatherapp.utils.NetworkManager
 class ClimaRepository(private val context: Context) {
 
     private val api: ClimaApiService = RetrofitClient.instance.create(ClimaApiService::class.java)
-    private val apiKey = "cc5f5c259c2348ba4fc544ae184ad7c8"
+    //private val apiKey = "cc5f5c259c2348ba4fc544ae184ad7c8"
+    private val ykpia = "ad2e474fc9f8f0e8896d769ce0816466"
     //private val cacheManager = CacheManager(context)
     private val appContext = context
 
@@ -22,7 +23,7 @@ class ClimaRepository(private val context: Context) {
     }
 
     suspend fun obtenerClima(ciudad: String): ClimaResponse {
-        val response = api.getClimaPorCiudad(ciudad, apiKey)
+        val response = api.getClimaPorCiudad(ciudad, ykpia)
 
         //validacion de internet
         val isOnline = NetworkManager.isNetworkAvailable(appContext)
@@ -39,7 +40,7 @@ class ClimaRepository(private val context: Context) {
     }
 
     suspend fun obtenerPronostico(ciudad: String): PronosticoResponse {
-        val response = api.getPronosticoPorCiudad(ciudad, apiKey)
+        val response = api.getPronosticoPorCiudad(ciudad, ykpia)
         if (response.isSuccessful) {
             return response.body() ?: throw Exception("Respuesta vacía del servidor")
         } else {
