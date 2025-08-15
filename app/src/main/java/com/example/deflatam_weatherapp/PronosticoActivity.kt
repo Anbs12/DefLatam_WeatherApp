@@ -18,17 +18,22 @@ import com.example.deflatam_weatherapp.entities.PronosticoEntity
 import com.example.deflatam_weatherapp.model.DiaPronostico
 import com.example.deflatam_weatherapp.model.PronosticoResponse
 import com.example.deflatam_weatherapp.repository.ClimaRepository
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
+import javax.inject.Inject
 
-class PronosticoActivity : AppCompatActivity() {
+@AndroidEntryPoint
+class PronosticoActivity() : AppCompatActivity() {
+
+    @Inject
+    lateinit var climaRepository: ClimaRepository
 
     private lateinit var tvTituloPronostico: TextView
     private lateinit var rvPronostico: RecyclerView
-    private lateinit var climaRepository: ClimaRepository
     private lateinit var roomCacheManager: RoomCacheManager // NUEVA
     private var ciudadNombre: String = ""
 
@@ -45,7 +50,6 @@ class PronosticoActivity : AppCompatActivity() {
     private fun initViews() {
         tvTituloPronostico = findViewById(R.id.tvTituloPronostico)
         rvPronostico = findViewById(R.id.rvPronostico)
-        climaRepository = ClimaRepository(this)
         roomCacheManager = RoomCacheManager(this) // NUEVA
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
@@ -79,10 +83,13 @@ class PronosticoActivity : AppCompatActivity() {
                 var pronosticosFiltrados: List<DiaPronostico>
                 val listaCache = mutableListOf<PronosticoEntity>()
 
-                if (isInternetAvailable(this@PronosticoActivity)){
+                if (isInternetAvailable(this@PronosticoActivity)) {
                     response = climaRepository.obtenerPronostico(ciudadNombre)
                     pronosticosFiltrados = filtrarPronosticosPorDia(response.list)
-                    Log.d("PronosticoActivity", "datos filtrados: ${pronosticosFiltrados.size} por día")
+                    Log.d(
+                        "PronosticoActivity",
+                        "datos filtrados: ${pronosticosFiltrados.size} por día"
+                    )
 
                     if (pronosticosFiltrados.isEmpty()) {
                         tvTituloPronostico.text = "No se encontraron pronósticos para el día actual"
@@ -104,22 +111,26 @@ class PronosticoActivity : AppCompatActivity() {
                         )
                         roomCacheManager.guardarPronosticoCache(entity)
                         listaCache.add(entity)
-                        tvTituloPronostico.text = "Pronóstico de ${listaCache.size} días para $ciudadNombre"
+                        tvTituloPronostico.text =
+                            "Pronóstico de ${listaCache.size} días para $ciudadNombre"
                     }
-                }else{
+                } else {
                     listaCache.addAll(roomCacheManager.obtenerPronosticoCache(ciudadNombre))
-                    tvTituloPronostico.text = "Pronóstico de ${listaCache.size} días para $ciudadNombre $texttvTituloPronosticoNoInternet"
+                    tvTituloPronostico.text =
+                        "Pronóstico de ${listaCache.size} días para $ciudadNombre $texttvTituloPronosticoNoInternet"
                 }
 
                 // Mostrar en RecyclerView
                 val adapter = PronosticoAdapter(listaCache)
                 rvPronostico.adapter = adapter
 
-                Toast.makeText(this@PronosticoActivity, "Pronóstico cargado", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PronosticoActivity, "Pronóstico cargado", Toast.LENGTH_SHORT)
+                    .show()
 
             } catch (e: Exception) {
                 tvTituloPronostico.text = "Error al cargar pronóstico"
-                Toast.makeText(this@PronosticoActivity, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PronosticoActivity, "Error: ${e.message}", Toast.LENGTH_SHORT)
+                    .show()
                 Log.e("PronosticoActivity", "Error al cargar pronóstico ${e.message}", e)
             }
         }
@@ -143,7 +154,8 @@ class PronosticoActivity : AppCompatActivity() {
                     val existingTime = timeFormat.parse(existing.dt_txt.split(" ")[1])
                     val diffExisting = Math.abs(existingTime.hours - 12)
                     if (diffCurrent < diffExisting) pronosticosFiltrados[fecha] = pronostico
-                } catch (_: Exception) {}
+                } catch (_: Exception) {
+                }
             }
         }
         return pronosticosFiltrados.values.toList()
@@ -158,7 +170,9 @@ class PronosticoActivity : AppCompatActivity() {
         val cm = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }?.run {
-                hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) || hasTransport(NetworkCapabilities.TRANSPORT_VPN)
+                hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || hasTransport(
+                    NetworkCapabilities.TRANSPORT_ETHERNET
+                ) || hasTransport(NetworkCapabilities.TRANSPORT_VPN)
             } == true
         } else {
             @Suppress("DEPRECATION") cm.activeNetworkInfo?.isConnected == true

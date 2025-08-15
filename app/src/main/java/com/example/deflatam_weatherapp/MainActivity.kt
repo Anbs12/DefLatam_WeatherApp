@@ -24,15 +24,20 @@ import com.example.deflatam_weatherapp.model.ClimaResponse
 import com.example.deflatam_weatherapp.repository.ClimaRepository
 import com.example.deflatam_weatherapp.ui.MainActivityViewModel
 import com.example.deflatam_weatherapp.utils.LocationHelper
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
+@AndroidEntryPoint
+class MainActivity () : AppCompatActivity() {
+
+    @Inject
+    lateinit var climaRepository: ClimaRepository
 
     private lateinit var binding: ActivityMainBinding
-    private val climaRepository = ClimaRepository(this)
     private val PERMISSIONS_REQUEST_LOCATION = 100
     private var ultimaCiudadConsultada = ""
     private var ciudadesFavoritas = mutableListOf<String>()
