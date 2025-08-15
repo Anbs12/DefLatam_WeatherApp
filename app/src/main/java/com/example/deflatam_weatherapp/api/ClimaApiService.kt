@@ -6,8 +6,9 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-/** Interfaz para la API del clima */
+/** Interfaz para la API del clima para peticiones GET*/
 interface ClimaApiService {
+
     @GET("weather")
     suspend fun getClimaPorCiudad(
         @Query("q") ciudad: String,
@@ -23,4 +24,5 @@ interface ClimaApiService {
         @Query("units") units: String = "metric",
         @Query("lang") lang: String = "es"
     ): Response<PronosticoResponse>
+
 }

@@ -1,6 +1,7 @@
 package com.example.deflatam_weatherapp
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -9,6 +10,7 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
@@ -24,15 +26,21 @@ import com.example.deflatam_weatherapp.model.ClimaResponse
 import com.example.deflatam_weatherapp.repository.ClimaRepository
 import com.example.deflatam_weatherapp.ui.MainActivityViewModel
 import com.example.deflatam_weatherapp.utils.LocationHelper
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.util.Locale
+import javax.inject.Inject
 
-class MainActivity : AppCompatActivity() {
+@SuppressLint("SetTextI18n")
+@AndroidEntryPoint
+class MainActivity() : AppCompatActivity() {
+
+    @Inject
+    lateinit var climaRepository: ClimaRepository
 
     private lateinit var binding: ActivityMainBinding
-    private val climaRepository = ClimaRepository(this)
     private val PERMISSIONS_REQUEST_LOCATION = 100
     private var ultimaCiudadConsultada = ""
     private var ciudadesFavoritas = mutableListOf<String>()
@@ -107,6 +115,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Observa datos de clima almacenados en cache */
+    @SuppressLint("SetTextI18n")
     private fun observarCache() {
         viewModel.climaCache.observe(this, Observer { entity ->
             entity?.let {
@@ -155,6 +164,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Actualiza UI con los datos de clima recibidos */
+    @SuppressLint("SetTextI18n")
     private fun mostrarClima(climaResponse: ClimaResponse) {
         binding.tvCiudad.text = climaResponse.nombre
         binding.tvDescripcion.text = climaResponse.weather[0].description
@@ -214,6 +224,7 @@ class MainActivity : AppCompatActivity() {
                         binding.etCiudad.setText(ciudad)
                     } else mostrarErrorUbicacion("Ciudad no encontrada")
                 } catch (e: Exception) {
+                    Log.e("MainActivity", "Error al obtener ciudad", e)
                     mostrarErrorUbicacion("Error de geolocalizacion")
                 }
             } else mostrarErrorUbicacion("Sin Ubicacion")
@@ -221,6 +232,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Muestra mensaje de error relacionado con ubicación */
+
     private fun mostrarErrorUbicacion(mensaje: String) {
         try {
             binding.progressBar.visibility = View.GONE
@@ -251,8 +263,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     /** Verifica si hay conexión a internet */
+    @SuppressLint("ObsoleteSdkInt")
     private fun isInternetAvailable(context: Context): Boolean {
-        val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val cm = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             cm.activeNetwork?.let { cm.getNetworkCapabilities(it) }?.run {
                 hasTransport(NetworkCapabilities.TRANSPORT_WIFI) || hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) || hasTransport(
