@@ -25,7 +25,9 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Locale
 import javax.inject.Inject
+import kotlin.math.abs
 
+@SuppressLint("SetTextI18n")
 @AndroidEntryPoint
 class PronosticoActivity() : AppCompatActivity() {
 
@@ -60,6 +62,7 @@ class PronosticoActivity() : AppCompatActivity() {
         rvPronostico.layoutManager = LinearLayoutManager(this)
     }
 
+
     private fun obtenerDatosIntent() {
         ciudadNombre = intent.getStringExtra("CIUDAD_NOMBRE") ?: "Ciudad no encontrada"
         tvTituloPronostico.text = "Pronóstico para los próximos 5 días en $ciudadNombre"
@@ -77,7 +80,7 @@ class PronosticoActivity() : AppCompatActivity() {
             try {
                 tvTituloPronostico.text = "Cargando pronóstico para $ciudadNombre..."
                 Log.d("PronosticoActivity", "Obteniendo info de la API")
-                var texttvTituloPronosticoNoInternet = "Sin internet desde cache."
+                val texttvTituloPronosticoNoInternet = "Sin internet desde cache."
 
                 val response: PronosticoResponse
                 var pronosticosFiltrados: List<DiaPronostico>
@@ -149,10 +152,10 @@ class PronosticoActivity() : AppCompatActivity() {
             } else {
                 try {
                     val currentTime = timeFormat.parse(hora)
-                    val diffCurrent = Math.abs(currentTime.hours - 12)
+                    val diffCurrent = abs(currentTime!!.hours - 12)
                     val existing = pronosticosFiltrados[fecha]!!
                     val existingTime = timeFormat.parse(existing.dt_txt.split(" ")[1])
-                    val diffExisting = Math.abs(existingTime.hours - 12)
+                    val diffExisting = abs(existingTime!!.hours - 12)
                     if (diffCurrent < diffExisting) pronosticosFiltrados[fecha] = pronostico
                 } catch (_: Exception) {
                 }
@@ -166,6 +169,7 @@ class PronosticoActivity() : AppCompatActivity() {
         return true
     }
 
+    @SuppressLint("ObsoleteSdkInt")
     private fun isInternetAvailable(context: Context): Boolean {
         val cm = context.getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
