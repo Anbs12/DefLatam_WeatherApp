@@ -16,10 +16,6 @@ class ClimaRepository @Inject constructor(
 
     private val ykpia = BuildConfig.API_KEY
 
-    companion object {
-        private const val TAG = "ClimaRepository"
-    }
-
     /**Obtiene el clima para una ciudad dada*/
     suspend fun obtenerClima(ciudad: String): ClimaResponse {
         val response = api.getClimaPorCiudad(ciudad, ykpia)
